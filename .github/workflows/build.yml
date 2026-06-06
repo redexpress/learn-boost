@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -24,70 +24,28 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential
+          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential pkg-config
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install boost openssl@3 cmake
-
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          vcpkg install boost-system boost-filesystem boost-thread openssl --triplet=x64-windows
+          brew install boost openssl@3 cmake pkg-config
+          echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+          echo "BOOST_ROOT=$(brew --prefix boost)" >> $GITHUB_ENV
+          echo "BOOST_INCLUDE_DIR=$(brew --prefix boost)/include" >> $GITHUB_ENV
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
 
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF \
+            -DBoost_ROOT=${{ env.BOOST_ROOT }} \
+            -DBoost_INCLUDE_DIR=${{ env.BOOST_INCLUDE_DIR }} \
+            -DOPENSSL_ROOT=${{ env.OPENSSL_ROOT }} \
+            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }}
 
-      - name: Build (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Build
         run: cmake --build build --config Release -j
-
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        run: cmake --build build --config Release
-
-      - name: Prepare package directory (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          mkdir -p package
-          cp build/learn_boost package/
-          if [ -f build/libprj_lib.a ]; then cp build/libprj_lib.a package/; fi
-          if [ -d build/libnetwork ]; then find build -name "libnetwork*" -exec cp {} package/ \; ; fi
-          if [ -d build/libdevcrypto ]; then find build -name "libdevcrypto*" -exec cp {} package/ \; ; fi
-          if [ -d build/libdevcore ]; then find build -name "libdevcore*" -exec cp {} package/ \; ; fi
-
-      - name: Prepare package directory (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path package -Force
-          Copy-Item build/Release/learn_boost.exe package/
-          if (Test-Path build/Release/prj_lib.lib) { Copy-Item build/Release/prj_lib.lib package/ }
-          if (Test-Path build/Release/network.lib) { Copy-Item build/Release/network.lib package/ }
-          if (Test-Path build/Release/devcrypto.lib) { Copy-Item build/Release/devcrypto.lib package/ }
-          if (Test-Path build/Release/devcore.lib) { Copy-Item build/Release/devcore.lib package/ }
-
-      - name: Create archive (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cd package
-          tar -czf ../learn-boost-linux.tar.gz *
-
-      - name: Create archive (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cd package
-          tar -czf ../learn-boost-macos.tar.gz *
-
-      - name: Create archive (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Compress-Archive -Path package/* -DestinationPath learn-boost-windows.zip
 
   release:
     name: Release on tag
@@ -96,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -106,33 +64,30 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential
+          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential pkg-config
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install boost openssl@3 cmake
-
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          vcpkg install boost-system boost-filesystem boost-thread openssl --triplet=x64-windows
+          brew install boost openssl@3 cmake pkg-config
+          echo "BREW_PREFIX=$(brew --prefix)" >> $GITHUB_ENV
+          echo "BOOST_ROOT=$(brew --prefix boost)" >> $GITHUB_ENV
+          echo "BOOST_INCLUDE_DIR=$(brew --prefix boost)/include" >> $GITHUB_ENV
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
 
       - name: Configure
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF \
+            -DBoost_ROOT=${{ env.BOOST_ROOT }} \
+            -DBoost_INCLUDE_DIR=${{ env.BOOST_INCLUDE_DIR }} \
+            -DOPENSSL_ROOT=${{ env.OPENSSL_ROOT }} \
+            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }}
 
-      - name: Build (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Build
         run: cmake --build build --config Release -j
 
-      - name: Build (Windows)
-        if: runner.os == 'Windows'
-        run: cmake --build build --config Release
-
-      - name: Prepare package directory (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Prepare package directory
         shell: bash
         run: |
           mkdir -p package
@@ -143,18 +98,6 @@ jobs:
           if [ -d build/libdevcore ]; then find build -name "libdevcore*" -exec cp {} package/ \; ; fi
           cd package
           tar -czf ../learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz *
-
-      - name: Prepare package (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Path package -Force
-          Copy-Item build/Release/learn_boost.exe package/
-          if (Test-Path build/Release/prj_lib.lib) { Copy-Item build/Release/prj_lib.lib package/ }
-          if (Test-Path build/Release/network.lib) { Copy-Item build/Release/network.lib package/ }
-          if (Test-Path build/Release/devcrypto.lib) { Copy-Item build/Release/devcrypto.lib package/ }
-          if (Test-Path build/Release/devcore.lib) { Copy-Item build/Release/devcore.lib package/ }
-          Compress-Archive -Path package/* -DestinationPath learn-boost-windows.zip
 
       - name: Upload artifact (Linux)
         if: runner.os == 'Linux'
@@ -169,13 +112,6 @@ jobs:
         with:
           name: learn-boost-macos
           path: learn-boost-macos.tar.gz
-
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: learn-boost-windows
-          path: learn-boost-windows.zip
 
   publish:
     name: Publish Release
@@ -200,12 +136,6 @@ jobs:
           name: learn-boost-macos
           path: dist/macos
 
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: learn-boost-windows
-          path: dist/windows
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -217,4 +147,3 @@ jobs:
           files: |
             dist/linux/learn-boost-linux.tar.gz
             dist/macos/learn-boost-macos.tar.gz
-            dist/windows/learn-boost-windows.zip
