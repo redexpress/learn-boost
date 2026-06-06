@@ -26,7 +26,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential pkg-config
+          sudo apt-get install -y libboost-all-dev libssl-dev cmake build-essential pkg-config lcov
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -43,7 +43,7 @@ jobs:
       - name: Configure (Linux)
         if: runner.os == 'Linux'
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_GM=OFF -DENABLE_COVERAGE=ON
 
       - name: Configure (macOS)
         if: runner.os == 'macOS'
@@ -59,11 +59,38 @@ jobs:
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
-        run: cmake --build build --config Release -j
+        run: cmake --build build --config Debug -j
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
         run: CXXFLAGS="-I${{ env.BOOST_INCLUDE_DIR }}" cmake --build build --config Release -j
+
+      - name: Run tests (Linux)
+        if: runner.os == 'Linux'
+        run: cd build && ctest --output-on-failure
+
+      - name: Generate coverage
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          lcov --capture --directory . --output-file coverage/coverage.info \
+            --rc lcov_branch_coverage=1 \
+            --rc geninfo_unexecuted_blocks=1 \
+            --ignore-errors negative,gcov,unused,empty,mismatch
+          lcov --remove coverage/coverage.info '/usr/*' '*/_deps/*' '*/tests/*' \
+            --output-file coverage/coverage.info \
+            --ignore-errors unused
+          lcov --list coverage/coverage.info
+          genhtml coverage/coverage.info --output-directory coverage/html
+          echo "Coverage summary:"
+          lcov --summary coverage/coverage.info
+
+      - name: Upload coverage
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/coverage/html
 
   release:
     name: Release on tag
@@ -130,6 +157,7 @@ jobs:
           if [ -d build/libnetwork ]; then find build -name "libnetwork*" -exec cp {} package/ \; ; fi
           if [ -d build/libdevcrypto ]; then find build -name "libdevcrypto*" -exec cp {} package/ \; ; fi
           if [ -d build/libdevcore ]; then find build -name "libdevcore*" -exec cp {} package/ \; ; fi
+          if [ -d build/lib ]; then find build/lib -name "*.a" -exec cp {} package/ \; ; fi
           cd package
           tar -czf ../learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz *
 

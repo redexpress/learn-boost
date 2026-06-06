@@ -1,8 +1,10 @@
 #include <iostream>
 #include <string>
 
+#include "json.h"
 #include "sort.h"
 #include "net.h"
+#include "devcore.h"
 
 int main(int argc, char* argv[]) {
     std::string cmd = "sort";
@@ -12,12 +14,22 @@ int main(int argc, char* argv[]) {
         if (cmd == "sort") {
             use_sort();
         } else if (cmd == "net") {
-
-        } else {
-
+            use_network();
+        } else if (cmd == "json") {
+            use_json();
+        } else if (cmd == "base64") {
+            use_base64();
+        } else if (cmd == "uuid") {
+            use_uuid();
+        } else if (cmd == "aes") {
+            use_aes();
+        } else if (cmd == "hash") {
+            use_hash();
+        } else if (cmd == "ini") {
+            use_ini();
         }
         return 0;
     }
-    use_network();
+    use_ini();
     return 0;
 }
