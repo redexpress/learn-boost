@@ -3,6 +3,8 @@ name: Build learn-boost
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -37,8 +39,6 @@ jobs:
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
           echo "CXXFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
           echo "CFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
-          ls $(brew --prefix boost)/include/boost/beast/core.hpp 2>&1
-          ls $(brew --prefix boost)/include/boost/sort/sort.hpp 2>&1
 
       - name: Configure (Linux)
         if: runner.os == 'Linux'
@@ -95,8 +95,6 @@ jobs:
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
           echo "CXXFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
           echo "CFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
-          ls $(brew --prefix boost)/include/boost/beast/core.hpp 2>&1
-          ls $(brew --prefix boost)/include/boost/sort/sort.hpp 2>&1
 
       - name: Configure (Linux)
         if: runner.os == 'Linux'
@@ -123,7 +121,7 @@ jobs:
         if: runner.os == 'macOS'
         run: CXXFLAGS="-I${{ env.BOOST_INCLUDE_DIR }}" cmake --build build --config Release -j
 
-      - name: Prepare package directory
+      - name: Prepare package
         shell: bash
         run: |
           mkdir -p package
@@ -135,43 +133,6 @@ jobs:
           cd package
           tar -czf ../learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz *
 
-      - name: Upload artifact (Linux)
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: learn-boost-linux
-          path: learn-boost-linux.tar.gz
-
-      - name: Upload artifact (macOS)
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: learn-boost-macos
-          path: learn-boost-macos.tar.gz
-
-  publish:
-    name: Publish Release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download Linux artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: learn-boost-linux
-          path: dist/linux
-
-      - name: Download macOS artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: learn-boost-macos
-          path: dist/macos
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -180,6 +141,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: |
-            dist/linux/learn-boost-linux.tar.gz
-            dist/macos/learn-boost-macos.tar.gz
+          files: learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz
