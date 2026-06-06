@@ -133,6 +133,43 @@ jobs:
           cd package
           tar -czf ../learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz *
 
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: learn-boost-linux
+          path: learn-boost-linux.tar.gz
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: learn-boost-macos
+          path: learn-boost-macos.tar.gz
+
+  publish:
+    name: Publish Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: learn-boost-linux
+          path: dist/linux
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: learn-boost-macos
+          path: dist/macos
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -141,4 +178,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: learn-boost-${{ runner.os == 'Linux' && 'linux' || 'macos' }}.tar.gz
+          files: |
+            dist/linux/learn-boost-linux.tar.gz
+            dist/macos/learn-boost-macos.tar.gz
