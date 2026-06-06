@@ -35,17 +35,35 @@ jobs:
           echo "BOOST_ROOT=$(brew --prefix boost)" >> $GITHUB_ENV
           echo "BOOST_INCLUDE_DIR=$(brew --prefix boost)/include" >> $GITHUB_ENV
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "CXXFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
+          echo "CFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
+          ls $(brew --prefix boost)/include/boost/beast/core.hpp 2>&1
+          ls $(brew --prefix boost)/include/boost/sort/sort.hpp 2>&1
 
-      - name: Configure
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF \
             -DBoost_ROOT=${{ env.BOOST_ROOT }} \
             -DBoost_INCLUDE_DIR=${{ env.BOOST_INCLUDE_DIR }} \
             -DOPENSSL_ROOT=${{ env.OPENSSL_ROOT }} \
-            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }}
+            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }} \
+            -DCMAKE_CXX_FLAGS=-I${{ env.BOOST_INCLUDE_DIR }} \
+            -DCMAKE_C_FLAGS=-I${{ env.BOOST_INCLUDE_DIR }} \
+            -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${{ env.BOOST_INCLUDE_DIR }}
 
-      - name: Build
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         run: cmake --build build --config Release -j
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: CXXFLAGS="-I${{ env.BOOST_INCLUDE_DIR }}" cmake --build build --config Release -j
 
   release:
     name: Release on tag
@@ -75,17 +93,35 @@ jobs:
           echo "BOOST_ROOT=$(brew --prefix boost)" >> $GITHUB_ENV
           echo "BOOST_INCLUDE_DIR=$(brew --prefix boost)/include" >> $GITHUB_ENV
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "CXXFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
+          echo "CFLAGS=-I$(brew --prefix boost)/include" >> $GITHUB_ENV
+          ls $(brew --prefix boost)/include/boost/beast/core.hpp 2>&1
+          ls $(brew --prefix boost)/include/boost/sort/sort.hpp 2>&1
 
-      - name: Configure
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GM=OFF \
             -DBoost_ROOT=${{ env.BOOST_ROOT }} \
             -DBoost_INCLUDE_DIR=${{ env.BOOST_INCLUDE_DIR }} \
             -DOPENSSL_ROOT=${{ env.OPENSSL_ROOT }} \
-            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }}
+            -DCMAKE_PREFIX_PATH=${{ env.BREW_PREFIX }} \
+            -DCMAKE_CXX_FLAGS=-I${{ env.BOOST_INCLUDE_DIR }} \
+            -DCMAKE_C_FLAGS=-I${{ env.BOOST_INCLUDE_DIR }} \
+            -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${{ env.BOOST_INCLUDE_DIR }}
 
-      - name: Build
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         run: cmake --build build --config Release -j
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: CXXFLAGS="-I${{ env.BOOST_INCLUDE_DIR }}" cmake --build build --config Release -j
 
       - name: Prepare package directory
         shell: bash

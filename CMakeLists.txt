@@ -14,7 +14,7 @@ add_library(prj_lib
 
 add_executable(learn_boost src/main.cpp)
 
-target_include_directories(prj_lib PUBLIC include src)
+target_include_directories(prj_lib PUBLIC include src ${Boost_INCLUDE_DIRS})
 target_include_directories(learn_boost PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(prj_lib PUBLIC OpenSSL::Crypto)
 target_link_libraries(learn_boost prj_lib)
