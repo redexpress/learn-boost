@@ -5,3 +5,5 @@ void use_uuid();
 void use_aes();
 void use_hash();
 void use_ini();
+void use_log();
+void use_exception();
