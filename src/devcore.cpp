@@ -10,7 +10,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/outcome.hpp>
-
+#include <tl/expected.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -85,7 +85,7 @@ void use_log() {
 
 void open_file();
 void log(std::string_view, const std::source_location& loc = std::source_location::current());
-std::expected<int, std::string>divide(int a, int b);
+tl::expected<int, std::string>divide(int a, int b);
 namespace outcome = BOOST_OUTCOME_V2_NAMESPACE;
 outcome::result<int> divide2(int a, int b);
 
@@ -123,9 +123,9 @@ void open_file() {
     throw std::runtime_error("Failed to open file");
 }
 
-std::expected<int, std::string> divide(int a, int b) {
+tl::expected<int, std::string> divide(int a, int b) {
     if (b == 0)
-        return std::unexpected("Division by zero");
+        return tl::unexpected("Division by zero");
     return a / b;
 }
 
